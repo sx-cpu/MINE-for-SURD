@@ -16,7 +16,7 @@ if __name__ == "__main__":
     transient = 10000
     samples = Nt - transient
 
-    target_var = 3                 # q3
+    target_var = 1                 
     input_vars = [1, 2, 3]            
 
     os.makedirs('./data', exist_ok=True)
@@ -59,11 +59,12 @@ if __name__ == "__main__":
         X_list = [data_map[v][:-lag] for v in subset]
         X = np.vstack(X_list).T
         X = torch.tensor(X, dtype=torch.float32)
+        print(f"X.shape:{X.shape}")
 
         # target: Y
         Y = data_map[target_var][lag:]
         Y = torch.tensor(Y, dtype=torch.float32).reshape(-1, 1)
-
+        print(f"Y.shape:{Y.shape}")
         # dataloader
         dataset = TensorDataset(X, Y)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -81,11 +82,14 @@ if __name__ == "__main__":
     # -----------------------------
     # 4. save results
     # -----------------------------
-    np.save("./MI_results/MI_results.npy", MI_results)
+    
+    np.save(f"./MI_results/mediator_MI_results_target_{target_var}.npy", MI_results)
     print(f"\nSaved MI results to ./data/mediator_MI_results_target_{target_var}.npy")
 
     print("\nFinal MI results:")
     for k, v in MI_results.items():
         print(k, ":", v)
+
+    
 
     

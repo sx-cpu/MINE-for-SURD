@@ -20,17 +20,21 @@ class MineNet(nn.Module):
         return self.model(xy)
 
 class MINE:
-    def __init__(self, dim_x, dim_y, lr=1e-3, device='cuda'):
+    def __init__(self, dim_x, dim_y, lr=1e-5, device='cuda'):
         self.net = MineNet(dim_x, dim_y).to(device)
         self.opt = optim.Adam(self.net.parameters(), lr=lr)
         self.device = device
+
+        # EMA for stability
+        self.ma_et = None
+        self.ma_rate = 0.01
 
     @staticmethod
     def shuffle(y):
         idx = torch.randperm(len(y))
         return y[idx]
 
-    def train(self, dataloader, epochs=10):
+    def train(self, dataloader, epochs=20):
         self.net.train()
         for epoch in range(epochs):
             running_mi = 0.0
@@ -46,14 +50,21 @@ class MINE:
                 y_marg = self.shuffle(batch_y)
                 et = torch.exp(self.net(batch_x, y_marg)).mean()
 
-                loss = -(t - torch.log(et + 1e-8))
+                # EMA smoothing
+                if self.ma_et is None:
+                    self.ma_et = et.detach()
+                else:
+                    self.ma_et = (1 - self.ma_rate) * self.ma_et + self.ma_rate * et.detach()
+
+                loss = -(t - torch.log(self.ma_et + 1e-8))
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.net.parameters(), 5.0)  
                 self.opt.step()
 
-                running_mi += (t - torch.log(et)).item()
+                running_mi += (t - torch.log(self.ma_et)).item()
             print(f"Epoch {epoch+1}/{epochs}, avg MI={running_mi/len(dataloader):.6f}")
 
-    def estimate(self, X, Y, batch_size=4096):
+    def estimate(self, X, Y, batch_size=65536):
         self.net.eval()
         dataset = TensorDataset(X, Y)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)

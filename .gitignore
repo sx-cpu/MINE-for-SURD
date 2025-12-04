@@ -1,2 +1,4 @@
-/data/
-/MI_results/
+data/
+MI_results/
+*.pyc
+*__pycache__/
