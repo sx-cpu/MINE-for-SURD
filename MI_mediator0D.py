@@ -5,18 +5,19 @@ from torch.utils.data import TensorDataset, DataLoader
 from model.MLP import MINE
 import utils.analytic_eqs as cases  
 import utils.datasets as proc
+import datetime
 
 
 # ----------------------------------------
 # main 
 # ----------------------------------------
 if __name__ == "__main__":
-    Nt = 5 * 10**6
+    Nt = 2 * 10**5
     lag = 1
     transient = 10000
     samples = Nt - transient
 
-    target_var = 1                 
+    target_var = 3                 
     input_vars = [1, 2, 3]            
 
     os.makedirs('./data', exist_ok=True)
@@ -50,31 +51,33 @@ if __name__ == "__main__":
     # -----------------------------
     MI_results = {}
 
-    batch_size = 4096
+    batch_size = 65536
+    epochs = 100
+    lr = 1e-5
 
     for subset in subsets:
         print(f"\n=== Training MINE for inputs {subset} → target {target_var}[+{lag}] ===")
 
-        # input: X
+        # build full X,Y tensors first (you already do this)
         X_list = [data_map[v][:-lag] for v in subset]
         X = np.vstack(X_list).T
         X = torch.tensor(X, dtype=torch.float32)
-        print(f"X.shape:{X.shape}")
 
-        # target: Y
         Y = data_map[target_var][lag:]
         Y = torch.tensor(Y, dtype=torch.float32).reshape(-1, 1)
-        print(f"Y.shape:{Y.shape}")
-        # dataloader
+
+        # 1) fit normalization on full training data BEFORE creating dataloader (or do it now)
+        mine = MINE(dim_x=X.shape[1], dim_y=1, device='cuda')
+        mine.fit_normalization(X, Y)   # <-- IMPORTANT: full-data fit
+
+        # 2) now create dataset/loader and train
         dataset = TensorDataset(X, Y)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        mine.train(loader, epochs=epochs)
 
-        # init MINE
-        mine = MINE(dim_x=X.shape[1], dim_y=1, device='cuda')
-        mine.train(loader, epochs=10)
 
         # estimate MI
-        MI_value = mine.estimate(X, Y, batch_size=batch_size)
+        MI_value = mine.estimate(X, Y, batch_size=65536)
         MI_results[subset] = float(MI_value)
 
         print(f"MI{subset} = {MI_value:.6f}")
@@ -82,9 +85,11 @@ if __name__ == "__main__":
     # -----------------------------
     # 4. save results
     # -----------------------------
-    
-    np.save(f"./MI_results/mediator_MI_results_target_{target_var}.npy", MI_results)
-    print(f"\nSaved MI results to ./data/mediator_MI_results_target_{target_var}.npy")
+        
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    savepath = f"./MI_results/mediator_MI_results_target_{target_var}_{ts}.npy"
+    np.save(savepath, MI_results)
+    print(f"\nSaved MI results to {savepath}")
 
     print("\nFinal MI results:")
     for k, v in MI_results.items():

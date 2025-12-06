@@ -110,7 +110,7 @@ def train_mine(model: nn.Module,
                dataloader: DataLoader,
                optimizer: torch.optim.Optimizer,
                device: torch.device,
-               epochs: int = 10,
+               epochs: int = 50,
                log_every: int = 50):
     model.to(device)
     model.train()
@@ -192,7 +192,7 @@ def example_run():
     model = MINEEstimator(in_channels=2)
     optim = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    train_mine(model, dl, optim, device, epochs=5, log_every=20)
+    train_mine(model, dl, optim, device, epochs=50, log_every=20)
 
     # After training you can compute dataset-level I_hat by averaging batches:
     model.eval()
