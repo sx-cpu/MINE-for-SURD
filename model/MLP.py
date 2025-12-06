@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
+import collections
+
 
 class MineNet(nn.Module):
     def __init__(self, dim_x, dim_y, hidden=128):
@@ -18,13 +20,6 @@ class MineNet(nn.Module):
     def forward(self, x, y):
         xy = torch.cat([x,y], dim=1)
         return self.model(xy)
-
-import collections
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import TensorDataset, DataLoader
 
 # assume MineNet is defined above (unchanged)
 
@@ -96,6 +91,7 @@ class MINE:
         """
         self.net.train()
 
+        mi_list, loss_list, ma_list = [], [], []
         for ep in range(1, epochs + 1):
             epoch_sum_mi = 0.0
             n_batches = 0
@@ -141,6 +137,7 @@ class MINE:
                 # final loss (we minimize negative of ReMINE objective)
                 # objective: t_mean - log_et_for_loss - lambda * (g_batch - C)^2
                 loss = -(t_mean - log_et_for_loss) + reg
+                # epoch_sum_loss += loss
 
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), clip_norm)
@@ -156,14 +153,20 @@ class MINE:
 
             if ep % print_every == 0:
                 avg_mi = epoch_sum_mi / max(1, n_batches)
+                # avg_loss = epoch_sum_loss / max(1, n_batches)
+                mi_list.append(avg_mi)
+                # loss_list.append(avg_loss.item())
+
                 print(f"Epoch {ep}/{epochs}, avg MI={avg_mi:.6f}, buffer_len={len(self._stat_buffer)}")
+        
+        return mi_list
 
     #################################################################
     #  ESTIMATE: two modes
     #   - if use_window=True and buffer populated -> use micro-averaging over buffer
     #   - else -> compute fresh t_mean and K full-data permutations (exact-ish)
     #################################################################
-    def estimate(self, X, Y, batch_size=65536, K=5, use_window=True):
+    def estimate(self, X, Y, batch_size=65536, K=5, use_window=False):
         """
         If use_window=True and we have >=1 entries in the internal buffer, compute micro-averaged estimate:
            t_mean_window = mean over buffer of t_batch_means

@@ -5,14 +5,19 @@ from torch.utils.data import TensorDataset, DataLoader
 from model.MLP import MINE
 import utils.analytic_eqs as cases  
 import utils.datasets as proc
+from utils.seed import set_global_seed
 import datetime
+from utils.diagnose.diagnose_mine import plot_mi_curve
+
 
 
 # ----------------------------------------
 # main 
 # ----------------------------------------
 if __name__ == "__main__":
-    Nt = 2 * 10**5
+    set_global_seed(42)
+
+    Nt = 2 * 10**6
     lag = 1
     transient = 10000
     samples = Nt - transient
@@ -51,9 +56,16 @@ if __name__ == "__main__":
     # -----------------------------
     MI_results = {}
 
+    # hyperparameter
     batch_size = 65536
-    epochs = 100
-    lr = 1e-5
+    epochs = 40
+    lr = 1e-4
+    ema_rate=0.01
+    lambda_reg=0.1
+    C_reg=0.0
+    window_size=500
+    batch_size = 65536
+    lr = 1e-4
 
     for subset in subsets:
         print(f"\n=== Training MINE for inputs {subset} → target {target_var}[+{lag}] ===")
@@ -67,25 +79,31 @@ if __name__ == "__main__":
         Y = torch.tensor(Y, dtype=torch.float32).reshape(-1, 1)
 
         # 1) fit normalization on full training data BEFORE creating dataloader (or do it now)
-        mine = MINE(dim_x=X.shape[1], dim_y=1, device='cuda')
+        mine = MINE(dim_x=X.shape[1], dim_y=1, lr=lr, ema_rate=ema_rate, 
+                    lambda_reg=lambda_reg, C_reg=C_reg, window_size=window_size, device='cuda')
         mine.fit_normalization(X, Y)   # <-- IMPORTANT: full-data fit
 
         # 2) now create dataset/loader and train
         dataset = TensorDataset(X, Y)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-        mine.train(loader, epochs=epochs)
+        mi_list = mine.train(loader, epochs=epochs)
+
+        ts0 = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = f'logs/mediator/mediator_{subset}_{ts0}.png'
+        plot_mi_curve(mi_list, save_path)
 
 
         # estimate MI
         MI_value = mine.estimate(X, Y, batch_size=65536)
         MI_results[subset] = float(MI_value)
 
+
         print(f"MI{subset} = {MI_value:.6f}")
 
     # -----------------------------
     # 4. save results
     # -----------------------------
-        
+    
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     savepath = f"./MI_results/mediator_MI_results_target_{target_var}_{ts}.npy"
     np.save(savepath, MI_results)

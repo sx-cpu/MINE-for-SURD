@@ -1,17 +1,28 @@
 import torch
 import numpy as np
+import os
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 
-def plot_mi_curve(mi_list, title="MI estimation curve"):
+def plot_mi_curve(mi_list, save_path=None, title="MI estimation curve", hline=None):
     plt.figure(figsize=(6,4))
     plt.plot(mi_list, label="Estimated MI")
+
+    if hline is not None:
+        plt.axhline(y=hline, color='r', linestyle='--',label='True MI')
     plt.xlabel("Training iteration")
     plt.ylabel("MI")
     plt.title(title)
     plt.legend()
     plt.grid(True)
+    
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, bbox_inches='tight')
+        print(f'Figure saved to {save_path}')
+    
     plt.show()
+
 
 
 def diagnose_mine(mine, X, Y, batch_size=65536, K=5, true_mi=None):
