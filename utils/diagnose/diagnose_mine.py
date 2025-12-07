@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 
 def plot_mi_curve(mi_list, save_path=None, title="MI estimation curve", hline=None):
-    plt.figure(figsize=(6,4))
+    plt.figure(figsize=(15,8))
     plt.plot(mi_list, label="Estimated MI")
 
     if hline is not None:

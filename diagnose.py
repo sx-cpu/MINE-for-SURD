@@ -59,8 +59,8 @@ if __name__ == "__main__":
     # save results
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f'logs/gaussian/gaussian_N={formatted_Nt}_rho={rho}_{ts}.png'
-
-    plot_mi_curve(mi_list, save_path, hline=true_mi)
+    title = f'MI estimation curve for groud truth'
+    plot_mi_curve(mi_list, save_path, title, hline=true_mi)
 
 
     
