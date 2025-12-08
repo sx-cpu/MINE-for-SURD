@@ -81,19 +81,26 @@ def surd_global(MI: Dict[tuple, float], n_vars: int):
     I1_vals = np.array([v for (_, v) in T1])
     I1_combs = [c for (c, _) in T1]
 
+    T1_indices = [next(iter(c)) for c in I1_combs]
+
     # I_0 = 0 for difference base
     prev = 0.0
     for i in range(n1):
-        comb = I1_combs[i]
         val = I1_vals[i]
         diff = val - prev
+        if diff < 0:
+            diff = max(diff, 0.0)
 
         if i < n1 - 1:
-            # Redundant
-            I_R[comb] += diff
+            for j in range(i, n1):
+                suffix_indices = T1_indices[j: n1]          # list of ints
+                suffix_key = tuple(sorted(suffix_indices))  # canonical ordering
+                I_R[suffix_key] = diff
         else:
-            # Unique
-            I_R[comb] += diff
+            # Unique: last element only
+            last_idx = T1_indices[i]
+            last_key = (last_idx,)
+            I_R[last_key] = diff
 
         prev = val
 

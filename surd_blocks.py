@@ -11,7 +11,7 @@ plt.rcParams.update({'font.size': 22})
 if __name__ == '__main__':
 
     # information
-    block = 'mediator'
+    block = 'synergistic_collider'
     lag = 1
     Nt = 2 * 10**6
     bins = 100
