@@ -1,4 +1,4 @@
-# MINE for SURD
+# Neural Mutual Information Estimation for SURD
 
 ## Overview
 
