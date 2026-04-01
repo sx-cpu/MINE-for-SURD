@@ -209,18 +209,18 @@ The method has been validated on:
 2. **Block Causal Structures**: Correctly identifies synergistic, unique, and redundant components
 3. **Energy Cascade**: Reproduces results from the original SURD paper
 
-<!-- ## Citation
+## Citation
 
-If you use this code in your research, please cite:
+This paper is still in preparation. If you use this code in your research, please cite:
 
 ```bibtex
 @article{SURD,
-  title={Synergistic–Unique–Redundant Decomposition of Causal Effects},
-  author={...},
+  title={Neural Mutual Information Estimation for SURD},
+  author={Shixing Sun, Zhihao Chen},
   journal={...},
   year={...}
 }
-``` -->
+```
 
 ## License
 
